@@ -1,0 +1,62 @@
+import sys
+import numpy
+import shutil
+import os
+import glob
+import pandas as pd
+import numpy as np
+import requests
+import json
+
+filenames = ["https://raw.githubusercontent.com/curated-intel/Ukraine-Cyber-Operations/main/KPMG-Egyde_Ukraine-Crisis_Feeds/MISP-CSV_MediumConfidence_Filtered/Ukraine-Crisis_AlienVaultOTX_ThreatHunt_Feed.csv",
+       "https://raw.githubusercontent.com/curated-intel/Ukraine-Cyber-Operations/main/KPMG-Egyde_Ukraine-Crisis_Feeds/MISP-CSV_MediumConfidence_Filtered/Ukraine-Crisis_GreyNoise_ThreatHunt_Feed_Historical_IPs.csv",
+       "https://raw.githubusercontent.com/curated-intel/Ukraine-Cyber-Operations/main/KPMG-Egyde_Ukraine-Crisis_Feeds/MISP-CSV_MediumConfidence_Filtered/Ukraine-Crisis_GreyNoise_ThreatHunt_Feed_Non_Spoofed_IPs.csv",
+       "https://raw.githubusercontent.com/curated-intel/Ukraine-Cyber-Operations/main/KPMG-Egyde_Ukraine-Crisis_Feeds/MISP-CSV_MediumConfidence_Filtered/Ukraine-Crisis_GreyNoise_ThreatHunt_Feed_Spoofed_IPs.csv",
+       "https://raw.githubusercontent.com/curated-intel/Ukraine-Cyber-Operations/main/KPMG-Egyde_Ukraine-Crisis_Feeds/MISP-CSV_MediumConfidence_Filtered/Ukraine-Crisis_MalwareBazaar_ThreatHunt_Feed.csv",
+       "https://raw.githubusercontent.com/curated-intel/Ukraine-Cyber-Operations/main/KPMG-Egyde_Ukraine-Crisis_Feeds/MISP-CSV_MediumConfidence_Filtered/Ukraine-Crisis_ThreatFox_ThreatHunt_Feed.csv",
+       "https://raw.githubusercontent.com/curated-intel/Ukraine-Cyber-Operations/main/KPMG-Egyde_Ukraine-Crisis_Feeds/MISP-CSV_MediumConfidence_Filtered/Ukraine-Crisis_Twitter_ThreatHunt_Feed.csv",
+       "https://raw.githubusercontent.com/curated-intel/Ukraine-Cyber-Operations/main/KPMG-Egyde_Ukraine-Crisis_Feeds/MISP-CSV_MediumConfidence_Filtered/Ukraine-Crisis_RecordedFuture_ThreatHunt_Feed.csv",
+       "https://raw.githubusercontent.com/curated-intel/Ukraine-Cyber-Operations/main/KPMG-Egyde_Ukraine-Crisis_Feeds/MISP-CSV_LowConfidence_Unfiltered/Ukraine-Crisis_DomainTools_ThreatHunt_Feed.csv"     ]
+
+for x in filenames:
+    r=requests.get(x, stream=True)
+    if r.status_code == 200:
+        with open(x.split('Ukraine-Crisis_')[-1], 'wb') as f:
+            r.raw.decode_content = True
+            shutil.copyfileobj(r.raw, f)
+            
+            
+os.chdir(r"C:\Users\jhend")
+extension = 'csv'
+all_filenames = ['GreyNoise_ThreatHunt_Feed_Spoofed_IPs.csv','MalwareBazaar_ThreatHunt_Feed.csv','ThreatFox_ThreatHunt_Feed.csv','AlienVaultOTX_ThreatHunt_Feed.csv','GreyNoise_ThreatHunt_Feed_Historical_IPs.csv','GreyNoise_ThreatHunt_Feed_Non_Spoofed_IPs.csv']
+df = pd.read_csv('ThreatFox_ThreatHunt_feed.csv')
+df[['value', 'port']] = df['value'].str.split('|', expand=True)
+ipAndPort = df.query("type=='ip-dst|port'")['value']
+df.to_csv('ThreatFox_ThreatHunt_feed.csv')
+
+
+
+combined_csv = pd.concat([pd.read_csv(f,encoding='cp437') for f in all_filenames])
+combined_csv.to_csv( "combined.csv", index=False, encoding='utf-8-sig')
+
+
+df = pd.read_csv("combined.csv")
+
+hashType = ['sha1', 'sha256', 'md5']
+ipType = ['ip-dst' , 'ip-src' , 'ip-dst|port']
+domainType = ['domain']
+urlType = ['url']
+values = df['value']
+df['ip'] = ""
+df['hash'] = ""
+df['domain'] = ""
+df['url'] = ""
+
+df.loc[df.type.isin(ipType), 'ip'] = values
+df.loc[df.type.isin(hashType), 'hash'] = values
+df.loc[df.type.isin(domainType), 'domain'] = values
+df.loc[df.type.isin(urlType), 'url'] = values
+print(df)
+df.to_csv('combined1.csv')
+
+df = pd.read_csv("combined1.csv") 
